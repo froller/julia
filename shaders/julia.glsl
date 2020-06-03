@@ -32,5 +32,6 @@ vec3 getColor(const vec2 point) {
         z = transform(z);
         c += sensitivity;
     }
-    return rainbow(c);
+    //return rainbow(c);
+    return vec3(c);
 }

@@ -4,18 +4,27 @@
 #include <fstream>
 #include <iostream>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_operation.hpp>
 #include <SDL.h>
 
 #define UNUSED(x) (void)x;
 
-static int screenWidth = 1024;
-static int screenHeight = 768;
+static int screenWidth = 1080;
+static int screenHeight = 1080;
 
-static float mouseX = 0.f;
-static float mouseY = 0.f;
-static float mouseZ = 0.01f;
+static glm::vec2 mousePos(0.f, 0.f);
+static float sensitivity = 0.01f;
+
+static glm::vec2 center(0.f, 0.f);
+static float zoom = 1.f;
+
+static glm::mat4 view(1.f);
 
 void usage(int argc, char **argv);
 GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName);
@@ -87,6 +96,8 @@ int main(int argc, char **argv) {
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Running event loop");
     SDL_bool quit = SDL_FALSE;
     SDL_bool lmbDown = SDL_FALSE;
+    SDL_bool ctrlDown = SDL_FALSE;
+    SDL_bool altDown = SDL_FALSE;
     SDL_Event event;
     while (!quit)
     {
@@ -101,27 +112,47 @@ int main(int argc, char **argv) {
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEMOTION: %+d, %+d (%d, %d)", event.motion.xrel, event.motion.yrel, event.motion.x, event.motion.y);
                 if (lmbDown)
                 {
-                    mouseX = (float(event.motion.x) - screenWidth / 2) / screenWidth * 2;
-                    mouseY = (float(event.motion.y) * -1 + screenHeight / 2) / screenWidth * 2;
+                    mousePos.x = (float(event.motion.x) - screenWidth / 2) / screenWidth * 2;
+                    mousePos.y = (float(event.motion.y) * -1 + screenHeight / 2) / screenWidth * 2;
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEBUTTONDOWN: %d", event.button.button);
                 if (event.button.button == 1)
+                {
                     lmbDown = SDL_TRUE;
+                    mousePos.x = (float(event.motion.x) - screenWidth / 2) / screenWidth * 2;
+                    mousePos.y = (float(event.motion.y) * -1 + screenHeight / 2) / screenWidth * 2;
+                }
                 break;
             case SDL_MOUSEBUTTONUP:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEBUTTONUP: %d", event.button.button);
-                if (event.button.button == 1)
+                switch (event.button.button)
+                {
+                case 1:
                     lmbDown = SDL_FALSE;
+                    break;
+                case 2:
+                    zoom = 1.0f;
+                    center = glm::vec2(0, 0);
+                    break;
+                }
                 break;
             case SDL_MOUSEWHEEL:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEWHEEL: %+d, %+d", event.wheel.x, event.wheel.y);
-                mouseZ = mouseZ + 0.001 * event.wheel.y;
-                if (mouseZ > 1.f)
-                    mouseZ = 1.f;
-                else if (mouseZ < 0.001)
-                    mouseZ = 0.001;
+                if (ctrlDown)
+                {
+                    if (sensitivity > 1.f)
+                        sensitivity = 1.f;
+                    else if (sensitivity < 0.001)
+                        sensitivity = 0.001;
+                    zoom = zoom * pow(1.1, event.wheel.y);
+                }
+                else if (altDown)
+                    sensitivity = sensitivity + 0.001 * event.wheel.y;
+                else
+                    center += glm::vec2(float(event.wheel.x) / screenWidth * -10, float(event.wheel.y) / screenWidth * 10);
+
                 break;
             case SDL_WINDOWEVENT:
                 switch (event.window.event)
@@ -148,13 +179,21 @@ int main(int argc, char **argv) {
                 }
                 break;
             case SDL_KEYDOWN:
-                if (event.key.keysym.sym == SDLK_ESCAPE)
-                    quit = SDL_TRUE;
-                break;
             case SDL_KEYUP:
+                switch (event.key.keysym.sym)
+                {
+                case SDLK_ESCAPE:
+                    quit = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
+                case SDLK_LCTRL:
+                case SDLK_RCTRL:
+                    ctrlDown = SDL_bool(event.key.state == SDL_PRESSED);
+                case SDLK_LALT:
+                case SDLK_RALT:
+                    altDown = SDL_bool(event.key.state == SDL_PRESSED);
+                }
                 break;
             };
-            
             
         render(program);
         SDL_GL_SwapWindow(window);
@@ -247,16 +286,29 @@ GLuint loadShader (const GLuint shaderType, const std::filesystem::path &shaderF
 
 int render (const GLuint program)
 {
-    glClearColor(0.2, 0.2, 0.2, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(program);
+   
+    glm::mat4 view = glm::lookAt(
+        glm::vec3(center.x, center.y, 1.0f),    // положение камеры
+        glm::vec3(center.x, center.y, 0.0f),    // положение "прицела"
+        glm::vec3(0, 1, 0)                      // ориентация 0, 1, 0 - головой вверх
+    );
+    GLuint viewId = glGetUniformLocation(program, "view");
+    glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]);
 
-    GLuint C = glGetUniformLocation(program, "C");
-    glUniform2f(C, mouseX, mouseY);
+    glm::mat4 scale = glm::diagonal4x4(glm::vec4(zoom, zoom, 1.f, 1.f));
 
-    GLuint sensitivity = glGetUniformLocation(program, "sensitivity");
-    glUniform1f(sensitivity, mouseZ);
+    GLuint scaleId = glGetUniformLocation(program, "scale");
+    glUniformMatrix4fv(scaleId, 1, GL_FALSE, &scale[0][0]);
+    
+    GLuint CId = glGetUniformLocation(program, "C");
+    glUniform2fv(CId, 1, &mousePos[0]);
+
+    GLuint sensitivityId = glGetUniformLocation(program, "sensitivity");
+    glUniform1f(sensitivityId, sensitivity);
     
     GLuint vertexArray;
     glGenVertexArrays(1, &vertexArray);
