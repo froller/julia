@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Creating window");
-    SDL_Window *window = SDL_CreateWindow("Julia", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
+    SDL_Window *window = SDL_CreateWindow("Julia", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_FULLSCREEN_DESKTOP|SDL_WINDOW_OPENGL);
     if (!window)
     {
         SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Couldn't create window: %s", SDL_GetError());
@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
                         break;
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                         SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_SIZE_CHANGED: %d, %d", event.window.data1, event.window.data2);
-                        //screenWidth = event.window.data1;
-                        //screenHeight = event.window.data2;
+                        screenWidth = event.window.data1;
+                        screenHeight = event.window.data2;
                 }
                 break;
             }
