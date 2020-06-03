@@ -126,28 +126,35 @@ int main(int argc, char **argv) {
             case SDL_WINDOWEVENT:
                 switch (event.window.event)
                 {
-                    case SDL_WINDOWEVENT_MOVED:
-                        //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MOVED");
-                        break;
-                    case SDL_WINDOWEVENT_RESIZED:
-                        //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESIZED");
-                        break;
-                    case SDL_WINDOWEVENT_MINIMIZED:
-                        //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MINIMIZED");
-                        break;
-                    case SDL_WINDOWEVENT_MAXIMIZED:
-                        //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MAXIMIZED");
-                        break;
-                    case SDL_WINDOWEVENT_RESTORED:
-                        //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESTORED");
-                        break;
-                    case SDL_WINDOWEVENT_SIZE_CHANGED:
-                        SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_SIZE_CHANGED: %d, %d", event.window.data1, event.window.data2);
-                        screenWidth = event.window.data1;
-                        screenHeight = event.window.data2;
+                case SDL_WINDOWEVENT_MOVED:
+                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MOVED");
+                    break;
+                case SDL_WINDOWEVENT_RESIZED:
+                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESIZED");
+                    break;
+                case SDL_WINDOWEVENT_MINIMIZED:
+                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MINIMIZED");
+                    break;
+                case SDL_WINDOWEVENT_MAXIMIZED:
+                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MAXIMIZED");
+                    break;
+                case SDL_WINDOWEVENT_RESTORED:
+                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESTORED");
+                    break;
+                case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_SIZE_CHANGED: %d, %d", event.window.data1, event.window.data2);
+                    screenWidth = event.window.data1;
+                    screenHeight = event.window.data2;
                 }
                 break;
-            }
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_ESCAPE)
+                    quit = SDL_TRUE;
+                break;
+            case SDL_KEYUP:
+                break;
+            };
+            
             
         render(program);
         SDL_GL_SwapWindow(window);
