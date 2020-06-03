@@ -14,7 +14,7 @@ void main() {
 }
 
 vec2 juliaTransform(const vec2 Z) {
-    return vec2(Z.x * Z.x - Z.y * Z.y, Z.x * Z.y + Z.y * Z.x) + C;
+    return vec2(Z.x * Z.x - Z.y * Z.y, Z.x * Z.y + Z.y * Z.x) + C * 2;
 }
 
 vec3 getColor(const vec2 point) {
