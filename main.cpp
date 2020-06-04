@@ -26,6 +26,8 @@ static float zoom = 1.f;
 
 static glm::mat4 view(1.f);
 
+static const float scrollSpeed = 50;
+
 void usage(int argc, char **argv);
 GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName);
 GLuint loadShader(const GLuint shaderType, const std::filesystem::path &shaderFileName);
@@ -112,7 +114,7 @@ int main(int argc, char **argv) {
                 break;
             case SDL_MOUSEMOTION:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEMOTION: %+d, %+d (%d, %d)", event.motion.xrel, event.motion.yrel, event.motion.x, event.motion.y);
-                if (lmbDown)
+                if (lmbDown && zoom == 1.f)
                 {
                     mousePos.x = (float(event.motion.x) - screenWidth / 2) / screenWidth * 2;
                     mousePos.y = (float(event.motion.y) * -1 + screenHeight / 2) / screenWidth * 2;
@@ -120,7 +122,7 @@ int main(int argc, char **argv) {
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEBUTTONDOWN: %d", event.button.button);
-                if (event.button.button == 1)
+                if (event.button.button == 1 && zoom == 1.f)
                 {
                     lmbDown = SDL_TRUE;
                     mousePos.x = (float(event.motion.x) - screenWidth / 2) / screenWidth * 2;
@@ -134,29 +136,37 @@ int main(int argc, char **argv) {
                 case 1:
                     lmbDown = SDL_FALSE;
                     break;
-                case 2:
-                    zoom = 1.0f;
-                    center = glm::vec2(0, 0);
-                    break;
                 }
                 break;
             case SDL_MOUSEWHEEL:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEWHEEL: %+d, %+d", event.wheel.x, event.wheel.y);
                 if (ctrlDown)
-                {
-                    if (sensitivity > 1.f)
-                        sensitivity = 1.f;
-                    else if (sensitivity < 0.001)
-                        sensitivity = 0.001;
                     zoom = zoom * pow(1.1, event.wheel.y);
-                }
                 else if (altDown)
                     sensitivity = sensitivity + 0.001 * event.wheel.y;
                 else if (shiftDown)
-                    center += glm::vec2(float(event.wheel.y) / screenWidth * zoom * -10, 0);
+                    center += glm::vec2(float(event.wheel.y) / screenWidth / zoom * scrollSpeed * -1, 0);
                 else
-                    center += glm::vec2(float(event.wheel.x) / screenWidth * zoom * -10, float(event.wheel.y) / screenWidth * zoom * 10);
+                    center += glm::vec2(float(event.wheel.x) / screenWidth / zoom * scrollSpeed * -1, float(event.wheel.y) / screenWidth / zoom * scrollSpeed);
 
+                if (zoom < 1.f)
+                    zoom = 1.f;
+                
+                if (sensitivity > 1.f)
+                    sensitivity = 1.f;
+                else if (sensitivity < 0.001)
+                    sensitivity = 0.001;
+                
+                if (center.x < -1.f)
+                    center.x = -1.f;
+                else if (center.x > 1.f)
+                    center.x = 1.f;
+                
+                if (center.y < -1.f)
+                    center.y = -1.f;
+                else if (center.y > 1.f)
+                    center.y = 1.f;
+                
                 break;
             case SDL_WINDOWEVENT:
                 switch (event.window.event)
@@ -168,17 +178,25 @@ int main(int argc, char **argv) {
                 }
                 break;
             case SDL_KEYDOWN:
-            case SDL_KEYUP:
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_ESCAPE:
-                    if (event.key.state == SDL_PRESSED)
-                    {
-                        SDL_Event quitEvent;
-                        quitEvent.type = SDL_QUIT;
-                        SDL_PushEvent(&quitEvent);
-                    }
+                    SDL_Event quitEvent;
+                    quitEvent.type = SDL_QUIT;
+                    SDL_PushEvent(&quitEvent);
                     break;
+                case SDLK_PRINTSCREEN:
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Making screenshots is yet to do");
+                    break;
+                case SDLK_SPACE:
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Viewport reset");
+                    zoom = 1.0f;
+                    center = glm::vec2(0, 0);
+                    break;                   
+                }
+            case SDL_KEYUP:
+                switch (event.key.keysym.sym)
+                {
                 case SDLK_LCTRL:
                 case SDLK_RCTRL:
                     ctrlDown = SDL_bool(event.key.state == SDL_PRESSED);
@@ -190,10 +208,6 @@ int main(int argc, char **argv) {
                 case SDLK_LSHIFT:
                 case SDLK_RSHIFT:
                     shiftDown = SDL_bool(event.key.state == SDL_PRESSED);
-                    break;
-                case SDLK_PRINTSCREEN:
-                    if (event.key.state == SDL_PRESSED)
-                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Making screenshots is yet to do");
                     break;
                 }
                 break;
@@ -296,11 +310,15 @@ int render (const GLuint program)
 
     glUseProgram(program);
    
+/*
     glm::mat4 view = glm::lookAt(
         glm::vec3(center.x, center.y, 1.0f),    // положение камеры
         glm::vec3(center.x, center.y, 0.0f),    // положение "прицела"
         glm::vec3(0, 1, 0)                      // ориентация 0, 1, 0 - головой вверх
     );
+*/
+    glm::mat4 view = glm::ortho(center.x - 1.f, center.x + 1.f, center.y - 1.f, center.y + 1.f);
+    
     GLuint viewId = glGetUniformLocation(program, "view");
     glUniformMatrix4fv(viewId, 1, GL_FALSE, &view[0][0]);
 
