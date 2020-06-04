@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
     while (!quit)
     {
         if (SDL_PollEvent(&event))
+        {
             switch (event.type)
             {
             case SDL_QUIT:
@@ -197,7 +198,8 @@ int main(int argc, char **argv) {
                 }
                 break;
             };
-            
+        }    
+        SDL_FlushEvents(SDL_MOUSEMOTION, SDL_MOUSEWHEEL);
         render(program);
         SDL_GL_SwapWindow(window);
     }
