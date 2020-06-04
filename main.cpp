@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
     SDL_bool lmbDown = SDL_FALSE;
     SDL_bool ctrlDown = SDL_FALSE;
     SDL_bool altDown = SDL_FALSE;
+    SDL_bool shiftDown = SDL_FALSE;
     SDL_Event event;
     while (!quit)
     {
@@ -150,30 +151,17 @@ int main(int argc, char **argv) {
                 }
                 else if (altDown)
                     sensitivity = sensitivity + 0.001 * event.wheel.y;
+                else if (shiftDown)
+                    center += glm::vec2(float(event.wheel.y) / screenWidth * zoom * -10, 0);
                 else
-                    center += glm::vec2(float(event.wheel.x) / screenWidth * -10, float(event.wheel.y) / screenWidth * 10);
+                    center += glm::vec2(float(event.wheel.x) / screenWidth * zoom * -10, float(event.wheel.y) / screenWidth * zoom * 10);
 
                 break;
             case SDL_WINDOWEVENT:
                 switch (event.window.event)
                 {
-                case SDL_WINDOWEVENT_MOVED:
-                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MOVED");
-                    break;
-                case SDL_WINDOWEVENT_RESIZED:
-                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESIZED");
-                    break;
-                case SDL_WINDOWEVENT_MINIMIZED:
-                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MINIMIZED");
-                    break;
-                case SDL_WINDOWEVENT_MAXIMIZED:
-                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_MAXIMIZED");
-                    break;
-                case SDL_WINDOWEVENT_RESTORED:
-                    //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_RESTORED");
-                    break;
                 case SDL_WINDOWEVENT_SIZE_CHANGED:
-                    SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_WINDOWEVENT_SIZE_CHANGED: %d, %d", event.window.data1, event.window.data2);
+                    SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Window size: %d, %d", event.window.data1, event.window.data2);
                     screenWidth = event.window.data1;
                     screenHeight = event.window.data2;
                 }
@@ -183,14 +171,29 @@ int main(int argc, char **argv) {
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_ESCAPE:
-                    quit = SDL_bool(event.key.state == SDL_PRESSED);
+                    if (event.key.state == SDL_PRESSED)
+                    {
+                        SDL_Event quitEvent;
+                        quitEvent.type = SDL_QUIT;
+                        SDL_PushEvent(&quitEvent);
+                    }
                     break;
                 case SDLK_LCTRL:
                 case SDLK_RCTRL:
                     ctrlDown = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
                 case SDLK_LALT:
                 case SDLK_RALT:
                     altDown = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    shiftDown = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
+                case SDLK_PRINTSCREEN:
+                    if (event.key.state == SDL_PRESSED)
+                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Making screenshots is yet to do");
+                    break;
                 }
                 break;
             };
