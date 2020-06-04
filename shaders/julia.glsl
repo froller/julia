@@ -13,6 +13,7 @@ in vec2 UV;
 
 uniform vec2 C;
 uniform float sensitivity;
+uniform int showColor;
 
 vec2 transform(const vec2 Z);
 vec3 getColor(const vec2 point);
@@ -32,6 +33,9 @@ vec3 getColor(const vec2 point) {
         z = transform(z);
         c += sensitivity;
     }
-    //return rainbow(c);
-    return vec3(c);
+    
+    if (showColor == 0)
+        return vec3(c);
+    else
+        return rainbow(c);
 }

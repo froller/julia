@@ -24,9 +24,12 @@ static float sensitivity = 0.01f;
 static glm::vec2 center(0.f, 0.f);
 static float zoom = 1.f;
 
+static GLboolean showColor;
+
 static glm::mat4 view(1.f);
 
 static const float scrollSpeed = 50;
+
 
 void usage(int argc, char **argv);
 GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName);
@@ -192,7 +195,13 @@ int main(int argc, char **argv) {
                     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Viewport reset");
                     zoom = 1.0f;
                     center = glm::vec2(0, 0);
-                    break;                   
+                    break;
+                case SDLK_c:
+                    if (showColor = !showColor)
+                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Color mode");
+                    else
+                        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Grayscale mode");
+                    break;
                 }
             case SDL_KEYUP:
                 switch (event.key.keysym.sym)
@@ -332,6 +341,9 @@ int render (const GLuint program)
 
     GLuint sensitivityId = glGetUniformLocation(program, "sensitivity");
     glUniform1f(sensitivityId, sensitivity);
+
+    GLuint showColorId = glGetUniformLocation(program, "showColor");
+    glUniform1i(showColorId, showColor);
     
     GLuint vertexArray;
     glGenVertexArrays(1, &vertexArray);
