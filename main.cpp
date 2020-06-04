@@ -202,6 +202,13 @@ int main(int argc, char **argv) {
                     else
                         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Grayscale mode");
                     break;
+                case SDLK_p:
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Params:\n\tC = %f%+fi\n\tCenter: %f%+fi\n\tZoom: %f\n\tSensitivity: %f",
+                                mousePos.x, mousePos.y,
+                                center.x, center.y,
+                                zoom,
+                                sensitivity
+                    );
                 }
             case SDL_KEYUP:
                 switch (event.key.keysym.sym)
