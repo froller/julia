@@ -13,5 +13,6 @@ Julia set fractal OpenGL renderer.
 |Space|Reset viewport|
 |C|Toggle color mode|
 |P|Dump set and viewport parameters to log|
-|PrtSc|Make a shot *(not yet implemented)*|
+|Ctrl + S|Save screenshot|
+|PrtSc|*same*|
 |Esc|Quit|

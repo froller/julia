@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -12,6 +15,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_operation.hpp>
 #include <SDL.h>
+
+#ifdef WITH_PNG
+#include <png.h>
+#ifdef WITH_ZLIB
+#include <zlib.h>
+#endif // WITH_ZLIB
+#endif // WITH_PNG
 
 #define UNUSED(x) (void)x;
 
@@ -35,6 +45,7 @@ void usage(int argc, char **argv);
 GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName);
 GLuint loadShader(const GLuint shaderType, const std::filesystem::path &shaderFileName);
 int render(const GLuint program);
+int makeScreenShot();
 
 int main(int argc, char **argv) {
     if (argc != 3)
@@ -189,7 +200,11 @@ int main(int argc, char **argv) {
                     SDL_PushEvent(&quitEvent);
                     break;
                 case SDLK_PRINTSCREEN:
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Making screenshots is yet to do");
+                    makeScreenShot();
+                    break;
+                case SDLK_s:
+                    if (SDL_GetModState() & (KMOD_CTRL | KMOD_LCTRL | KMOD_RCTRL))
+                        makeScreenShot();
                     break;
                 case SDLK_SPACE:
                     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Viewport reset");
@@ -358,5 +373,123 @@ int render (const GLuint program)
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glDeleteVertexArrays(1, &vertexArray);
 
+    return 0;
+}
+
+int makeScreenShot()
+{
+#ifdef WITH_PNG
+    std::filesystem::path path = "julia.png"; // FIXME Приделать генератор имен
+
+    int bpp = 0;
+    SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &bpp);
+    
+    int channelDepth = 8;
+    int pixelSize = bpp / channelDepth;
+    
+    FILE *pngFile = fopen(path.c_str(), "wb");
+    if (!pngFile) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", strerror(errno));
+        return -1;
+    }
+
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "png_create_write_struct() failed");
+        fclose(pngFile);
+        return -1;
+    }
+    
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "png_create_info_struct() failed");
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(pngFile);
+        return -1;
+    }
+
+// Set error handler
+    if (setjmp (png_jmpbuf (png_ptr))) {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error writing PNG");
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        fclose(pngFile);
+        return -1;
+    }
+    
+// Set image attributes
+    png_set_IHDR (png_ptr,
+                  info_ptr,
+                  screenWidth,
+                  screenHeight,
+                  channelDepth,
+                  pixelSize == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
+                  PNG_INTERLACE_NONE,
+                  PNG_COMPRESSION_TYPE_DEFAULT,
+                  PNG_FILTER_TYPE_DEFAULT);
+// Set image time    
+    png_timep imageTime = new png_time_struct;
+    png_convert_from_time_t(imageTime, time(nullptr));
+    png_set_tIME(png_ptr,
+                 info_ptr,
+                 imageTime);
+    delete imageTime;
+    
+// Set image text
+    png_text text_ptr[6];
+    text_ptr[0].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[0].key = "Created with";
+    text_ptr[0].text = "julia";
+    text_ptr[1].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[1].key = "Tranform";
+    text_ptr[1].text = "Z = Z^2 + C";
+    text_ptr[2].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[2].key = "C";
+    text_ptr[2].text_length = snprintf(nullptr, 0, "%f%+fi", mousePos.x, mousePos.y) + 1;
+    text_ptr[2].text = static_cast<char *>(malloc(text_ptr[2].text_length));
+    snprintf(text_ptr[2].text, text_ptr[2].text_length, "%f%+fi", mousePos.x, mousePos.y);
+    text_ptr[3].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[3].key = "Center";
+    text_ptr[3].text_length = snprintf(nullptr, 0, "%f%+fi", center.x, center.y) + 1;
+    text_ptr[3].text = static_cast<char *>(malloc(text_ptr[3].text_length));
+    snprintf(text_ptr[3].text, text_ptr[3].text_length, "%f%+fi", center.x, center.y);
+    text_ptr[4].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[4].key = "Zoom";
+    text_ptr[4].text_length = snprintf(nullptr, 0, "%f", zoom) + 1;
+    text_ptr[4].text = static_cast<char *>(malloc(text_ptr[4].text_length));
+    snprintf(text_ptr[4].text, text_ptr[4].text_length, "%f", zoom);
+    text_ptr[5].compression = PNG_TEXT_COMPRESSION_NONE;
+    text_ptr[5].key = "Sensitivity";
+    text_ptr[5].text_length = snprintf(nullptr, 0, "%f", sensitivity) + 1;
+    text_ptr[5].text = static_cast<char *>(malloc(text_ptr[5].text_length));
+    snprintf(text_ptr[5].text, text_ptr[5].text_length, "%f", sensitivity);
+    png_set_text(png_ptr, info_ptr, text_ptr, 6);
+    for (int i = 2; i < 6; ++i)
+        free(text_ptr[i].text);
+
+// Make screenshot
+    GLubyte *texture = new GLubyte[screenWidth * screenHeight * pixelSize];
+    glReadBuffer(GL_FRONT);
+    glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
+
+    
+// Initialize row pointers
+    GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenHeight * sizeof(GLubyte *)));
+    for (size_t y = 0; y < screenHeight; ++y)
+        row_pointers[y] = &texture[y * screenWidth * pixelSize];
+    
+// Save data to file
+    png_init_io (png_ptr, pngFile);
+    png_set_rows (png_ptr, info_ptr, row_pointers);
+    png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
+
+    free(row_pointers);
+    delete texture;   
+    png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    fclose(pngFile);
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Screenshots saved to %s", path.c_str());
+#else // WITH_PNG
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "PNG not supported. Screenshots unavailable.");
+#endif // WITH_PNG
     return 0;
 }
