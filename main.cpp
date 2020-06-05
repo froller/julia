@@ -8,10 +8,16 @@
 #include <iostream>
 #include <sstream>
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 # include <OpenGL/gl3.h>
 # include <OpenGL/gl.h>
 # include <SDL2/SDL.h>
+#elif defined(_WIN32)
+# define GLM_ENABLE_EXPERIMENTAL
+# include <GL/glew.h>
+# include <GL/gl.h>
+# include <SDL.h>
+# include <Windows.h>
 #else
 # define GLM_ENABLE_EXPERIMENTAL
 # include <GL/glew.h>
@@ -54,13 +60,16 @@ GLuint loadShader(const GLuint shaderType, const std::filesystem::path &shaderFi
 int render(const GLuint program);
 int makeScreenShot();
 
-int main(int argc, char **argv) {
-    if (argc != 3)
-    {
-        usage(argc, argv);
-        exit(1);
-    }
-    
+#if defined(_WIN32)
+int WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR     lpCmdLine,
+    int       nShowCmd)
+#else
+int main(int argc, char **argv)
+#endif
+{   
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Initializing SDL");
     if (SDL_Init(SDL_INIT_VIDEO))
     {
@@ -110,11 +119,16 @@ int main(int argc, char **argv) {
     }
 #endif
   
-#ifdef __APPLE__
+#if defined(__APPLE__)
   GLuint program = loadShaders(
                                std::filesystem::path(argv[0]).remove_filename().append("../Resources/tri.glsl").lexically_normal(),
                                std::filesystem::path(argv[0]).remove_filename().append("../Resources/julia.glsl").lexically_normal()
                                );
+#elif defined(_WIN32)
+    GLuint program = loadShaders(
+        std::filesystem::path().append("../shaders/tri.glsl").lexically_normal(),
+        std::filesystem::path().append("../shaders/julia.glsl").lexically_normal()
+    );
 #else
   GLuint program = loadShaders(
                                std::filesystem::path(argv[0]).remove_filename().append("../shaders/tri.glsl").lexically_normal(),
@@ -392,15 +406,19 @@ int render (const GLuint program)
 int makeScreenShot()
 {
 #ifdef WITH_PNG
-    std::filesystem::path path = "julia.png"; // FIXME Приделать генератор имен
+    std::filesystem::path path("julia.png"); // FIXME Приделать генератор имен
 
+#if defined(_WIN32)
+    int bpp = 24;
+#else
     int bpp = 0;
     SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &bpp);
-    
+#endif // _WIN32
+
     int channelDepth = 8;
     int pixelSize = bpp / channelDepth;
-    
-    FILE *pngFile = fopen(path.c_str(), "wb");
+
+    FILE *pngFile = fopen(path.string().c_str(), "wb");
     if (!pngFile) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", strerror(errno));
         return -1;
@@ -412,7 +430,7 @@ int makeScreenShot()
         fclose(pngFile);
         return -1;
     }
-    
+
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "png_create_info_struct() failed");
@@ -422,31 +440,34 @@ int makeScreenShot()
     }
 
 // Set error handler
-    if (setjmp (png_jmpbuf (png_ptr))) {
+    if (setjmp(png_jmpbuf(png_ptr))) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error writing PNG");
         png_destroy_write_struct(&png_ptr, &info_ptr);
         fclose(pngFile);
         return -1;
     }
-    
+
 // Set image attributes
-    png_set_IHDR (png_ptr,
-                  info_ptr,
-                  screenWidth,
-                  screenHeight,
-                  channelDepth,
-                  pixelSize == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
-                  PNG_INTERLACE_NONE,
-                  PNG_COMPRESSION_TYPE_DEFAULT,
-                  PNG_FILTER_TYPE_DEFAULT);
+    png_set_IHDR(
+        png_ptr,
+        info_ptr,
+        screenWidth,
+        screenHeight,
+        channelDepth,
+        pixelSize == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
+        PNG_INTERLACE_NONE,
+        PNG_COMPRESSION_TYPE_DEFAULT,
+        PNG_FILTER_TYPE_DEFAULT);
+
 // Set image time    
     png_timep imageTime = new png_time_struct;
     png_convert_from_time_t(imageTime, time(nullptr));
-    png_set_tIME(png_ptr,
-                 info_ptr,
-                 imageTime);
+    png_set_tIME(
+        png_ptr,
+        info_ptr,
+        imageTime);
     delete imageTime;
-    
+
 // Set image text
     png_text text_ptr[6];
     text_ptr[0].compression = PNG_TEXT_COMPRESSION_NONE;
@@ -484,23 +505,22 @@ int makeScreenShot()
     glReadBuffer(GL_FRONT);
     glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
 
-    
 // Initialize row pointers
     GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenHeight * sizeof(GLubyte *)));
     for (size_t y = 0; y < screenHeight; ++y)
         row_pointers[screenHeight - y - 1] = &texture[y * screenWidth * pixelSize];
     
 // Save data to file
-    png_init_io (png_ptr, pngFile);
-    png_set_rows (png_ptr, info_ptr, row_pointers);
-    png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
+    png_init_io(png_ptr, pngFile);
+    png_set_rows(png_ptr, info_ptr, row_pointers);
+    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
 
     free(row_pointers);
     delete texture;   
     png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
     png_destroy_write_struct(&png_ptr, &info_ptr);
     fclose(pngFile);
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Screenshots saved to %s", path.c_str());
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Screenshots saved to %s", path.string().c_str());
 #else // WITH_PNG
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "PNG not supported. Screenshots unavailable.");
 #endif // WITH_PNG
