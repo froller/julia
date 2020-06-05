@@ -13,20 +13,15 @@
 # include <OpenGL/gl.h>
 # include <SDL2/SDL.h>
 #else
+# define GLM_ENABLE_EXPERIMENTAL
+# include <GL/glew.h>
 # include <GL/gl.h>
 # include <SDL.h>
 #endif
 
-#ifndef __APPLE__
-# define GLM_ENABLE_EXPERIMENTAL
-# include <GL/glew.h>
-#endif
-
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_operation.hpp>
-
 
 #ifdef WITH_PNG
 #include <png.h>
