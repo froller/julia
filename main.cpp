@@ -488,7 +488,7 @@ int makeScreenShot()
 // Initialize row pointers
     GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenHeight * sizeof(GLubyte *)));
     for (size_t y = 0; y < screenHeight; ++y)
-        row_pointers[y] = &texture[y * screenWidth * pixelSize];
+        row_pointers[screenHeight - y - 1] = &texture[y * screenWidth * pixelSize];
     
 // Save data to file
     png_init_io (png_ptr, pngFile);
