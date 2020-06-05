@@ -3,15 +3,27 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
-#define GLM_ENABLE_EXPERIMENTAL
+#ifdef __APPLE__
+# include <OpenGL/gl3.h>
+# include <OpenGL/gl.h>
+# include <SDL2/SDL.h>
+#else
+# include <GL/gl.h>
+# include <SDL.h>
+#endif
 
-#include <GL/glew.h>
-#include <GL/gl.h>
+#ifndef __APPLE__
+# define GLM_ENABLE_EXPERIMENTAL
+# include <GL/glew.h>
+#endif
+
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_operation.hpp>
-#include <SDL.h>
+
 
 #define UNUSED(x) (void)x;
 
@@ -55,18 +67,16 @@ int main(int argc, char **argv) {
 #else
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_INFO);
 #endif
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 5);
-
+    
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 0);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-
-    //SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
     
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Creating window");
@@ -85,19 +95,28 @@ int main(int argc, char **argv) {
     }
     
     SDL_GL_MakeCurrent(window, ctx);
-    
+  
+#ifndef __APPLE__
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
         SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to init GLEW!");
         exit(3);
     }
+#endif
+  
+#ifdef __APPLE__
+  GLuint program = loadShaders(
+                               std::filesystem::path(argv[0]).remove_filename().append("../Resources/tri.glsl").lexically_normal(),
+                               std::filesystem::path(argv[0]).remove_filename().append("../Resources/julia.glsl").lexically_normal()
+                               );
+#else
+  GLuint program = loadShaders(
+                               std::filesystem::path(argv[0]).remove_filename().append("../shaders/tri.glsl").lexically_normal(),
+                               std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal()
+                               );
+#endif
 
-    GLuint program = loadShaders(
-        std::filesystem::path(argv[0]).remove_filename().append("../shaders/tri.glsl").lexically_normal(),
-        std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal()
-    );
-    
-    
+
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Running event loop");
     SDL_bool quit = SDL_FALSE;
     SDL_bool lmbDown = SDL_FALSE;

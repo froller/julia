@@ -18,8 +18,10 @@ uniform int showColor;
 vec2 transform(const vec2 Z);
 vec3 getColor(const vec2 point);
 
+out vec4 outColor;
+
 void main() {
-    gl_FragColor = vec4(getColor(UV * 2), 1.0);
+    outColor = vec4(getColor(UV * 2), 1.0);
 }
 
 vec2 transform(const vec2 Z) {
