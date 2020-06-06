@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ctime>
 
 #if defined(__APPLE__)
 # include <OpenGL/gl3.h>
@@ -460,8 +461,9 @@ int makeScreenShot()
         PNG_FILTER_TYPE_DEFAULT);
 
 // Set image time    
+    std::time_t createDate(std::time(nullptr));
     png_timep imageTime = new png_time_struct;
-    png_convert_from_time_t(imageTime, time(nullptr));
+    png_convert_from_time_t(imageTime, createDate);
     png_set_tIME(
         png_ptr,
         info_ptr,
@@ -469,36 +471,50 @@ int makeScreenShot()
     delete imageTime;
 
 // Set image text
-    png_text text_ptr[6];
-    text_ptr[0].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[0].key = "Created with";
-    text_ptr[0].text = "julia";
-    text_ptr[1].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[1].key = "Tranform";
-    text_ptr[1].text = "Z = Z^2 + C";
-    text_ptr[2].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[2].key = "C";
-    text_ptr[2].text_length = snprintf(nullptr, 0, "%f%+fi", mousePos.x, mousePos.y) + 1;
-    text_ptr[2].text = static_cast<char *>(malloc(text_ptr[2].text_length));
-    snprintf(text_ptr[2].text, text_ptr[2].text_length, "%f%+fi", mousePos.x, mousePos.y);
-    text_ptr[3].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[3].key = "Center";
-    text_ptr[3].text_length = snprintf(nullptr, 0, "%f%+fi", center.x, center.y) + 1;
-    text_ptr[3].text = static_cast<char *>(malloc(text_ptr[3].text_length));
-    snprintf(text_ptr[3].text, text_ptr[3].text_length, "%f%+fi", center.x, center.y);
-    text_ptr[4].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[4].key = "Zoom";
-    text_ptr[4].text_length = snprintf(nullptr, 0, "%f", zoom) + 1;
-    text_ptr[4].text = static_cast<char *>(malloc(text_ptr[4].text_length));
-    snprintf(text_ptr[4].text, text_ptr[4].text_length, "%f", zoom);
-    text_ptr[5].compression = PNG_TEXT_COMPRESSION_NONE;
-    text_ptr[5].key = "Sensitivity";
-    text_ptr[5].text_length = snprintf(nullptr, 0, "%f", sensitivity) + 1;
-    text_ptr[5].text = static_cast<char *>(malloc(text_ptr[5].text_length));
-    snprintf(text_ptr[5].text, text_ptr[5].text_length, "%f", sensitivity);
-    png_set_text(png_ptr, info_ptr, text_ptr, 6);
-    for (int i = 2; i < 6; ++i)
+    std::string timeString;
+    timeString.reserve(25);
+    std::strftime(timeString.data(), timeString.capacity(), "%FT%T%Z", std::localtime(&createDate));
+    std::string XMP(R"XMP(<?xpacket begin="?" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.4-c002 1.000000, 0000/00/00-00:00:00        ">
+   <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+         <xmp:CreatorTool>Julia</xmp:CreatorTool>
+         <xmp:CreateDate>%s</xmp:CreateDate>
+      </rdf:Description>
+      <rdf:Description rdf:about="" xmlns:exif="http://ns.adobe.com/exif/1.0/">
+         <exif:PixelXDimension>%d</exif:PixelXDimension>
+         <exif:PixelYDimension>%d</exif:PixelYDimension>
+         <exif:UserComment>Z=Z^2+C C=%f%+fi Center=%f%+fi Zoom=%f Sensitivity=%f</exif:UserComment>
+         <exif:ExifVersion>0220</exif:ExifVersion>
+      </rdf:Description>
+   </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>)XMP");
+    png_text text_ptr[1];
+    text_ptr[0].compression = PNG_ITXT_COMPRESSION_NONE;
+    text_ptr[0].key = "XML:com.adobe.xmp";
+    text_ptr[0].text_length = snprintf(nullptr, 0, XMP.c_str(),
+             timeString.c_str(),
+             screenWidth, screenHeight,
+             mousePos.x, mousePos.y,
+             center.x, center.y,
+             zoom,
+             sensitivity
+            ) + 1;
+    text_ptr[0].text = static_cast<char *>(malloc(text_ptr[0].text_length));
+    snprintf(text_ptr[0].text, text_ptr[0].text_length, XMP.c_str(),
+             timeString.c_str(),
+             screenWidth, screenHeight,
+             mousePos.x, mousePos.y,
+             center.x, center.y,
+             zoom,
+             sensitivity
+            );
+    png_set_text(png_ptr, info_ptr, text_ptr, 1);
+    for (int i = 0; i < 1; ++i)
         free(text_ptr[i].text);
+    
+    
 
 // Make screenshot
     GLubyte *texture = new GLubyte[screenWidth * screenHeight * pixelSize];
