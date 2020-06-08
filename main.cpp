@@ -144,6 +144,7 @@ int main(int argc, char **argv)
     SDL_bool ctrlDown = SDL_FALSE;
     SDL_bool altDown = SDL_FALSE;
     SDL_bool shiftDown = SDL_FALSE;
+    SDL_bool zDown = SDL_FALSE;
     SDL_Event event;
     while (!quit)
     {
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
                 break;
             case SDL_MOUSEWHEEL:
                 //SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "SDL_MOUSEWHEEL: %+d, %+d", event.wheel.x, event.wheel.y);
-                if (ctrlDown)
+                if (ctrlDown || zDown)
                     zoom = zoom * pow(1.1, event.wheel.y);
                 else if (altDown)
                     sensitivity = sensitivity + 0.001 * event.wheel.y;
@@ -235,6 +236,9 @@ int main(int argc, char **argv)
                     if (SDL_GetModState() & (KMOD_CTRL | KMOD_LCTRL | KMOD_RCTRL))
                         makeScreenShot();
                     break;
+                case SDLK_z:
+                    zDown = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
                 case SDLK_SPACE:
                     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Viewport reset");
                     zoom = 1.0f;
@@ -268,6 +272,9 @@ int main(int argc, char **argv)
                 case SDLK_LSHIFT:
                 case SDLK_RSHIFT:
                     shiftDown = SDL_bool(event.key.state == SDL_PRESSED);
+                    break;
+                case SDLK_z:
+                    zDown = SDL_bool(event.key.state == SDL_PRESSED);
                     break;
                 }
                 break;
@@ -447,13 +454,25 @@ int makeScreenShot()
         fclose(pngFile);
         return -1;
     }
-
+  
+#if defined(__APPLE__)
+    // Retina support
+    // Get exact viewport dimensions instead of window dimensions
+    GLint viewport[4];
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    int screenshotWidth = viewport[2];
+    int screenshotHeight = viewport[3];
+#else
+    int screenshotWidth = screenWidth;
+    int screenshotHeight = screenHeight;
+#endif
+    
 // Set image attributes
     png_set_IHDR(
         png_ptr,
         info_ptr,
-        screenWidth,
-        screenHeight,
+        screenshotWidth,
+        screenshotHeight,
         channelDepth,
         pixelSize == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
         PNG_INTERLACE_NONE,
@@ -517,14 +536,14 @@ int makeScreenShot()
     
 
 // Make screenshot
-    GLubyte *texture = new GLubyte[screenWidth * screenHeight * pixelSize];
+    GLubyte *texture = new GLubyte[screenshotWidth * screenshotHeight * pixelSize];
     glReadBuffer(GL_FRONT);
-    glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
+    glReadPixels(0, 0, screenshotWidth, screenshotHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
 
 // Initialize row pointers
-    GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenHeight * sizeof(GLubyte *)));
-    for (size_t y = 0; y < screenHeight; ++y)
-        row_pointers[screenHeight - y - 1] = &texture[y * screenWidth * pixelSize];
+    GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenshotHeight * sizeof(GLubyte *)));
+    for (size_t y = 0; y < screenshotHeight; ++y)
+        row_pointers[y] = &texture[y * screenshotWidth * pixelSize];
     
 // Save data to file
     png_init_io(png_ptr, pngFile);
