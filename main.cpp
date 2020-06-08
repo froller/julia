@@ -447,13 +447,25 @@ int makeScreenShot()
         fclose(pngFile);
         return -1;
     }
-
+  
+#if defined(__APPLE__)
+    // Retina support
+    // Get exact viewport dimensions instead of window dimensions
+    GLint viewport[4];
+    glGetIntegerv( GL_VIEWPORT, viewport );
+    int screenshotWidth = viewport[2];
+    int screenshotHeight = viewport[3];
+#else
+    int screenshotWidth = screenWidth;
+    int screenshotHeight = screenHeight;
+#endif
+    
 // Set image attributes
     png_set_IHDR(
         png_ptr,
         info_ptr,
-        screenWidth,
-        screenHeight,
+        screenshotWidth,
+        screenshotHeight,
         channelDepth,
         pixelSize == 4 ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
         PNG_INTERLACE_NONE,
@@ -517,14 +529,14 @@ int makeScreenShot()
     
 
 // Make screenshot
-    GLubyte *texture = new GLubyte[screenWidth * screenHeight * pixelSize];
+    GLubyte *texture = new GLubyte[screenshotWidth * screenshotHeight * pixelSize];
     glReadBuffer(GL_FRONT);
-    glReadPixels(0, 0, screenWidth, screenHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
+    glReadPixels(0, 0, screenshotWidth, screenshotHeight, GL_RGB, GL_UNSIGNED_BYTE, texture);
 
 // Initialize row pointers
-    GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenHeight * sizeof(GLubyte *)));
-    for (size_t y = 0; y < screenHeight; ++y)
-        row_pointers[screenHeight - y - 1] = &texture[y * screenWidth * pixelSize];
+    GLubyte **row_pointers = static_cast<GLubyte **>(malloc(screenshotHeight * sizeof(GLubyte *)));
+    for (size_t y = 0; y < screenshotHeight; ++y)
+        row_pointers[y] = &texture[y * screenshotWidth * pixelSize];
     
 // Save data to file
     png_init_io(png_ptr, pngFile);
