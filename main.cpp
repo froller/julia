@@ -121,23 +121,21 @@ int main(int argc, char **argv)
     }
 #endif
   
+    std::vector<std::filesystem::path> shaderFileNames;
 #if defined(__APPLE__)
-  GLuint program = loadShaders(
-                               std::filesystem::path(argv[0]).remove_filename().append("../Resources/tri.glsl").lexically_normal(),
-                               std::filesystem::path(argv[0]).remove_filename().append("../Resources/julia.glsl").lexically_normal()
-                               );
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../Resources/fragment.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../Resources/julia.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../Resources/mandelbrot.glsl").lexically_normal());
 #elif defined(_WIN32)
-    GLuint program = loadShaders(
-        std::filesystem::path().append("../shaders/tri.glsl").lexically_normal(),
-        std::filesystem::path().append("../shaders/julia.glsl").lexically_normal()
-    );
+    shaderFileNames.push_back(std::filesystem::path().append("../shaders/fragment.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path().append("../shaders/julia.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path().append("../shaders/mandelbrot.glsl").lexically_normal());
 #else
-  std::vector<std::filesystem::path> shaderFileNames;
-  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/fragment.glsl").lexically_normal());
-  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal());
-  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/mandelbrot.glsl").lexically_normal());
-  GLuint program = loadShaders(shaderFileNames);
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/fragment.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal());
+    shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/mandelbrot.glsl").lexically_normal());
 #endif
+    GLuint program = loadShaders(shaderFileNames);
 
 
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Running event loop");
