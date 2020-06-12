@@ -15,22 +15,22 @@ uniform vec2 C;
 uniform float sensitivity;
 uniform int showColor;
 
-vec2 transform(const vec2 Z);
-vec3 getColor(const vec2 point);
+vec2 mandelbrotTransform(const vec2 Z);
+vec3 mandelbrotGetColor(const vec2 point);
 
-void main() {
-    gl_FragColor = vec4(getColor(UV * 2), 1.0);
+void mandelbrotMain() {
+    gl_FragColor = gl_FragColor + vec4(mandelbrotGetColor(UV * 2), 1.0) * 0.5;
 }
 
-vec2 transform(const vec2 Z, const vec2 c) {
+vec2 mandelbrotTransform(const vec2 Z, const vec2 c) {
     return cplxmul(Z, Z) + c;
 }
 
-vec3 getColor(const vec2 point) {
+vec3 mandelbrotGetColor(const vec2 point) {
     float c = 0;
     vec2 z = vec2(0);
     while (c <= 1.001 && length(z) < 2.0) {
-        z = transform(z, point);
+        z = mandelbrotTransform(z, point);
         c += sensitivity;
     }
     

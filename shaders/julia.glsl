@@ -15,24 +15,22 @@ uniform vec2 C;
 uniform float sensitivity;
 uniform int showColor;
 
-vec2 transform(const vec2 Z);
-vec3 getColor(const vec2 point);
+vec2 juliaTransform(const vec2 Z);
+vec3 juliaGetColor(const vec2 point);
 
-out vec4 outColor;
-
-void main() {
-    outColor = vec4(getColor(UV * 2), 1.0);
+void juliaMain() {
+    gl_FragColor = vec4(juliaGetColor(UV * 2), 1.0) * 0.5;
 }
 
-vec2 transform(const vec2 Z) {
+vec2 juliaTransform(const vec2 Z) {
     return cplxmul(Z, Z) + C * 2;
 }
 
-vec3 getColor(const vec2 point) {
+vec3 juliaGetColor(const vec2 point) {
     float c = 0;
     vec2 z = point;
     while (c <= 1.001 && length(z) < 2.0) {
-        z = transform(z);
+        z = juliaTransform(z);
         c += sensitivity;
     }
     

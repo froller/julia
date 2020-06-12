@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 #include <ctime>
+#include <vector>
 
 #if defined(__APPLE__)
 # include <OpenGL/gl3.h>
@@ -56,11 +57,11 @@ static const float scrollSpeed = 50;
 
 
 void usage(int argc, char **argv);
-GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName);
+GLuint loadShaders(std::vector<std::filesystem::path> &fragmentShaderFileName);
 GLuint loadShader(const GLuint shaderType, const std::filesystem::path &shaderFileName);
+GLuint loadVertexShader();
 int render(const GLuint program);
 int makeScreenShot();
-
 #if defined(_WIN32)
 int WinMain(
     HINSTANCE hInstance,
@@ -131,10 +132,11 @@ int main(int argc, char **argv)
         std::filesystem::path().append("../shaders/julia.glsl").lexically_normal()
     );
 #else
-  GLuint program = loadShaders(
-                               std::filesystem::path(argv[0]).remove_filename().append("../shaders/tri.glsl").lexically_normal(),
-                               std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal()
-                               );
+  std::vector<std::filesystem::path> shaderFileNames;
+  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/fragment.glsl").lexically_normal());
+  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/julia.glsl").lexically_normal());
+  shaderFileNames.push_back(std::filesystem::path(argv[0]).remove_filename().append("../shaders/mandelbrot.glsl").lexically_normal());
+  GLuint program = loadShaders(shaderFileNames);
 #endif
 
 
@@ -299,17 +301,20 @@ void usage(int argc, char ** argv)
     fprintf(stderr, "Usage: %s a b\n\n\ta\treal component\n\tb\timaginary component\n\n", executable.filename().c_str());
 }
 
-GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std::filesystem::path &fragmentShaderFileName)
+GLuint loadShaders(std::vector<std::filesystem::path> &fragmentShaderFileNames)
 {
     GLuint program = glCreateProgram();
-    
-    GLuint vertexShader = loadShader(GL_VERTEX_SHADER, vertexShaderFileName);
+
+    GLuint vertexShader = loadVertexShader();
     glAttachShader(program, vertexShader);
     glDeleteShader(vertexShader);
-    
-    GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentShaderFileName);
-    glAttachShader(program, fragmentShader);
-    glDeleteShader(fragmentShader);
+
+    for (std::filesystem::path const &fragmentShaerFileName: fragmentShaderFileNames)
+    {
+        GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentShaerFileName);
+        glAttachShader(program, fragmentShader);
+        glDeleteShader(fragmentShader);
+    }
 
     SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Linking program");
     glLinkProgram(program);
@@ -329,6 +334,8 @@ GLuint loadShaders(const std::filesystem::path &vertexShaderFileName, const std:
   
     return program;
 }
+
+
 
 GLuint loadShader (const GLuint shaderType, const std::filesystem::path &shaderFileName )
 {
@@ -367,6 +374,47 @@ GLuint loadShader (const GLuint shaderType, const std::filesystem::path &shaderF
 
     return shader;
 }
+
+GLuint loadVertexShader()
+{
+    const std::string shaderText(R"SRC(
+#version 330 core
+
+uniform mat4 view;
+uniform mat4 scale;
+
+const vec2 triVertices[3] = vec2[]( vec2(-1, -1), vec2(3, -1), vec2(-1, 3) );
+
+out vec2 UV;
+
+void main()
+{
+    gl_Position = scale * view * vec4(triVertices[gl_VertexID], 0.0, 1.0);
+    
+    UV = vec2(triVertices[gl_VertexID].x, triVertices[gl_VertexID].y);
+}
+)SRC");
+    char const *shaderSource = shaderText.c_str();
+    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
+    SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Compiling vertex shader");
+    glShaderSource(shader, 1, &shaderSource, nullptr);
+    glCompileShader(shader);
+    GLint result = GL_FALSE;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    if (!result)
+    {
+        GLint infoLogLen = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLen);
+        std::string infoLog;
+        infoLog.reserve(infoLogLen);
+        glGetShaderInfoLog(shader, infoLogLen, nullptr, infoLog.data());
+        SDL_LogError(SDL_LOG_CATEGORY_RENDER, "Error compiling vertex shader: %s", infoLog.c_str());
+    }
+    else
+        SDL_LogDebug(SDL_LOG_CATEGORY_TEST, "Vertex shader compiled successfully");
+    return shader;
+}
+
 
 
 int render (const GLuint program)
