@@ -19,7 +19,7 @@ vec2 mandelbrotTransform(const vec2 Z);
 vec3 mandelbrotGetColor(const vec2 point);
 
 void mandelbrotMain() {
-    gl_FragColor = gl_FragColor + vec4(mandelbrotGetColor(UV * 2), 1.0) * 0.5;
+    gl_FragColor = vec4(mandelbrotGetColor(UV * 2), 1.0);
 }
 
 vec2 mandelbrotTransform(const vec2 Z, const vec2 c) {

@@ -19,7 +19,7 @@ vec2 juliaTransform(const vec2 Z);
 vec3 juliaGetColor(const vec2 point);
 
 void juliaMain() {
-    gl_FragColor = vec4(juliaGetColor(UV * 2), 1.0) * 0.5;
+    gl_FragColor = vec4(juliaGetColor(UV * 2), 1.0);
 }
 
 vec2 juliaTransform(const vec2 Z) {

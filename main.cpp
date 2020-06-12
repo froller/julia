@@ -55,6 +55,11 @@ static glm::mat4 view(1.f);
 
 static const float scrollSpeed = 50;
 
+static enum eFractal
+{
+    EFractal_Julia = 0,
+    EFractal_Mandelbrot
+} fractal = EFractal_Julia;
 
 void usage(int argc, char **argv);
 GLuint loadShaders(std::vector<std::filesystem::path> &fragmentShaderFileName);
@@ -276,6 +281,12 @@ int main(int argc, char **argv)
                 case SDLK_z:
                     zDown = SDL_bool(event.key.state == SDL_PRESSED);
                     break;
+                case SDLK_j:
+                    fractal = EFractal_Julia;
+                    break;
+                case SDLK_m:
+                    fractal = EFractal_Mandelbrot;
+                    break;
                 }
                 break;
             };
@@ -447,6 +458,9 @@ int render (const GLuint program)
 
     GLuint showColorId = glGetUniformLocation(program, "showColor");
     glUniform1i(showColorId, showColor);
+
+    GLuint fractalId = glGetUniformLocation(program, "fractal");
+    glUniform1i(fractalId, fractal);
     
     GLuint vertexArray;
     glGenVertexArrays(1, &vertexArray);

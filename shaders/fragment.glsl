@@ -3,8 +3,12 @@
 void juliaMain();
 void mandelbrotMain();
 
+uniform int fractal;
+
 void main() {
-    juliaMain();
-    mandelbrotMain();
+    if (fractal == 0)
+        juliaMain();
+    else
+        mandelbrotMain();
 }
 

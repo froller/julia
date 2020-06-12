@@ -12,6 +12,8 @@ Julia set fractal OpenGL renderer.
 |Alt + wheel|Change color sensitivity|
 |Space|Reset viewport|
 |C|Toggle color mode|
+|J|Show Julia set|
+|M|Show Mandelbrot set|
 |P|Dump set and viewport parameters to log|
 |Ctrl + S|Save screenshot|
 |PrtSc|*same*|
