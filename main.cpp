@@ -551,8 +551,12 @@ int makeScreenShot()
 
 // Set image text
     std::string timeString;
-    timeString.reserve(25);
+    timeString.reserve(32);
+#if defined(_WIN32)
+    std::strftime(timeString.data(), timeString.capacity(), "%FT%T%z", std::localtime(&createDate));
+#else
     std::strftime(timeString.data(), timeString.capacity(), "%FT%T%Z", std::localtime(&createDate));
+#endif // _WIN32
     std::string XMP(R"XMP(<?xpacket begin="?" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.4-c002 1.000000, 0000/00/00-00:00:00        ">
    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -572,6 +576,7 @@ int makeScreenShot()
     png_text text_ptr[1];
     text_ptr[0].compression = PNG_ITXT_COMPRESSION_NONE;
     text_ptr[0].key = "XML:com.adobe.xmp";
+    text_ptr[0].lang_key = nullptr;
     text_ptr[0].text_length = snprintf(nullptr, 0, XMP.c_str(),
              timeString.c_str(),
              screenWidth, screenHeight,
@@ -579,9 +584,11 @@ int makeScreenShot()
              center.x, center.y,
              zoom,
              sensitivity
-            ) + 1;
-    text_ptr[0].text = static_cast<char *>(malloc(text_ptr[0].text_length));
-    snprintf(text_ptr[0].text, text_ptr[0].text_length, XMP.c_str(),
+            );
+    text_ptr[0].itxt_length = 0;
+    text_ptr[0].lang = nullptr;
+    text_ptr[0].text = static_cast<char *>(malloc(text_ptr[0].text_length + 1));
+    snprintf(text_ptr[0].text, text_ptr[0].text_length + 1, XMP.c_str(),
              timeString.c_str(),
              screenWidth, screenHeight,
              mousePos.x, mousePos.y,
@@ -607,6 +614,7 @@ int makeScreenShot()
     
 // Save data to file
     png_init_io(png_ptr, pngFile);
+    png_set_user_limits(png_ptr, screenshotWidth, screenshotHeight);
     png_set_rows(png_ptr, info_ptr, row_pointers);
     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
 
