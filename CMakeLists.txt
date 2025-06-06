@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.30)
 
 project(julia)
 
@@ -6,22 +6,22 @@ set(OpenGL_GL_PREFERENCE "GLVND")
 
 if(WIN32)
     set(SDL2_LIBRARIES "SDL2.lib")
-    set(GLEW_LIBRARIES "glew.lib")
+    set(GLEW_LIBRARIES "glew32.lib")
     set(OPENGL_LIBRARIES "OpenGL32.lib")
-    set(PNG_LIBRARIES "libpng16.lib")
+    set(PNG_LIBRARIES "libpng.lib")
+	set(ZLIB_LIBRARIES "zlib.lib")
 
 
     set(SDL2_LIBDIR "build/packages/sdl2.2.0.5/build/native/lib/$(PlatformName)/dynamic")
-    set(GLEW_LIBDIR "build/packages/glew.1.9.0.1/build/native/lib/v110/$(PlatformName)/$(Configuration)/dynamic")
-    set(PNG_LIBDIR  "build/packages/libpng.1.6.28.1/build/native/lib/$(PlatformName)/v140/dynamic/$(Configuration)")
-    set(ZLIB_LIBDIR "build/packages/zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8/lib/native/v140/windesktop/msvcstl/dyn/rt-dyn/$(PlatformName)/$(Configuration)")
-
+    set(GLEW_LIBDIR "build/packages/GLEW-dynamic.2.2.0/build/native/lib/$(PlatformName)/$(Configuration)")
+    set(PNG_LIBDIR  "build/packages/libpng_static.1.6.39.2/build/native/lib/$(PlatformName)/v143/$(Configuration)/MultiThreadedDLL")
+    set(ZLIB_LIBDIR "build/packages/zlib_static.1.2.11.9/build/native/lib/$(PlatformName)/v142/$(Configuration)/MultiThreadedDLL")
 
     set(SDL2_INCLUDE_DIRS "build/packages/sdl2.2.0.5/build/native/include")
-    set(GLEW_INCLUDE_DIRS "build/packages/glew.1.9.0.1/build/native/include")
-    set(GLM_INCLUDE_DIRS "build/packages/glm.0.9.9.800/build/native/include")
-    set(PNG_INCLUDE_DIRS "build/packages/libpng.1.6.28.1/build/native/include")
-    set(ZLIB_INCLUDE_DIRS "build/packages/zlib.v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8/build/native/include")
+    set(GLEW_INCLUDE_DIRS "build/packages/GLEW-dynamic.2.2.0/build/native/include")
+    set(PNG_INCLUDE_DIRS  "build/packages/libpng_static.1.6.39.2/build/native/include")
+    set(ZLIB_INCLUDE_DIRS "build/packages/zlib_static.1.2.11.9/build/native/include")
+    set(GLM_INCLUDE_DIRS  "build/packages/glm.1.0.1/build/native/include")
 
     set(PNG_FOUND TRUE)
     set(ZLIB_FOUND TRUE)
@@ -51,7 +51,7 @@ endif()
 
 if (WIN32)
     add_executable(julia WIN32 main.cpp)
-    set_property(TARGET julia PROPERTY VS_PACKAGE_REFERENCES "sdl2_2.0.5;glew_1.9.0.1;glm_0.9.9.800;libpng_1.6.28.1;zlib_v140.windesktop.msvcstl.dyn.rt-dyn.1.2.8.8")
+    set_property(TARGET julia PROPERTY VS_PACKAGE_REFERENCES "sdl2.2.0.5;GLEW-dynamic_2.2.0;libpng_static.1.6.39.2;zlib_static.1.2.11.9;glm.1.0.1")
 else()
     add_executable(julia main.cpp)
 endif()
